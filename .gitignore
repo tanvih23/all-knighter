@@ -1,0 +1,29 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# Logs (generated at runtime, not tracked)
+logs/*.csv
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Arduino build artifacts
+firmware/build/
+firmware/.build/
+
+# Misc
+*.zip
+*.tar.gz
