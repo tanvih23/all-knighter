@@ -1,5 +1,5 @@
 """
-NapTrap — Drowsiness Detection (Laptop-side)
+All-Knighter — Drowsiness Detection
 Captures webcam feed, computes Eye Aspect Ratio via MediaPipe,
 sends alert state to ESP32 over serial, and displays a live dashboard.
 """
@@ -13,17 +13,15 @@ import os
 import serial
 from datetime import datetime
 
-# ──────────────────────────────────────────────
-# CONFIG
-# ──────────────────────────────────────────────
-EAR_THRESHOLD = 0.21        # fallback — overwritten by calibration at startup
-CLOSURE_TIME_LIMIT = 1.0    # seconds of closure before ALARM
-SERIAL_PORT = "COM3"        # Windows: COM3/COM4  |  Mac: /dev/cu.usbserial-...  |  Linux: /dev/ttyUSB0
+
+# config
+EAR_THRESHOLD = 0.21        # fallback will overwritten by calibration at startup
+CLOSURE_TIME_LIMIT = 1.0    # seconds of closure before alarm
+SERIAL_PORT = "COM3"       
 SERIAL_BAUD = 115200
 
-# ──────────────────────────────────────────────
-# MEDIAPIPE SETUP
-# ──────────────────────────────────────────────
+
+# mediapipe setup
 mp_face_mesh = mp.solutions.face_mesh
 face_mesh = mp_face_mesh.FaceMesh(
     max_num_faces=1,
@@ -32,13 +30,12 @@ face_mesh = mp_face_mesh.FaceMesh(
     min_tracking_confidence=0.5,
 )
 
-# Eye landmark indices (MediaPipe Face Mesh 468-point model)
+# eye landmark indices 
 LEFT_EYE = [362, 385, 387, 263, 373, 380]
 RIGHT_EYE = [33, 160, 158, 133, 153, 144]
 
 
 def compute_ear(landmarks, eye_indices, w, h):
-    """Eye Aspect Ratio for one eye: height / width."""
     pts = [(landmarks[i].x * w, landmarks[i].y * h) for i in eye_indices]
     v1 = np.linalg.norm(np.array(pts[1]) - np.array(pts[5]))
     v2 = np.linalg.norm(np.array(pts[2]) - np.array(pts[4]))
@@ -48,9 +45,8 @@ def compute_ear(landmarks, eye_indices, w, h):
     return (v1 + v2) / (2.0 * horiz)
 
 
-# ──────────────────────────────────────────────
-# SERIAL (optional — runs without ESP32 too)
-# ──────────────────────────────────────────────
+
+# serial
 try:
     ser = serial.Serial(SERIAL_PORT, SERIAL_BAUD, timeout=0.1)
     print(f"Serial connected on {SERIAL_PORT}")
@@ -58,12 +54,7 @@ except Exception:
     ser = None
     print("No serial connection — running without ESP32")
 
-# ──────────────────────────────────────────────
-# CSV LOG
-# ──────────────────────────────────────────────
-# Build the path relative to THIS script's location, not the current
-# working directory — so it works whether you run `python detector.py`
-# from software/, or launch it via VS Code's debugger from the project root.
+# csv log
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 LOGS_DIR = os.path.join(SCRIPT_DIR, "..", "logs")
 os.makedirs(LOGS_DIR, exist_ok=True)
@@ -72,17 +63,13 @@ log_file = open(log_path, "w", newline="")
 csv_writer = csv.writer(log_file)
 csv_writer.writerow(["timestamp", "ear", "state"])
 
-# ──────────────────────────────────────────────
-# MAIN LOOP
-# ──────────────────────────────────────────────
+# main loop
 cap = cv2.VideoCapture(0)
 if not cap.isOpened():
     print("ERROR: Cannot open webcam. Try VideoCapture(1).")
     exit()
 
-# ──────────────────────────────────────────────
-# CALIBRATION — sets EAR_THRESHOLD per person
-# ──────────────────────────────────────────────
+# calibration setting ear threshold for every person
 print("\n=== EAR CALIBRATION ===")
 print("Step 1: Look at the camera with eyes OPEN normally.")
 print("        Press 's' when ready to sample.\n")
@@ -114,7 +101,7 @@ while True:
         cv2.putText(frame, "Eyes CLOSED - press 's' to sample", (10, 65),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
 
-    cv2.imshow("NapTrap - Calibration", frame)
+    cv2.imshow("All-Knighter - Calibration", frame)
     key = cv2.waitKey(1) & 0xFF
 
     if key == ord('s'):
@@ -162,9 +149,8 @@ print(f"  (open={open_avg:.3f}, closed={closed_avg:.3f})")
 print("\nCalibration done — starting detection...\n")
 cv2.destroyAllWindows()
 
-# ──────────────────────────────────────────────
-# MAIN LOOP
-# ──────────────────────────────────────────────
+
+# main loop
 eyes_closed_since = None
 state = "OK"
 ear_history = []
@@ -256,6 +242,7 @@ while True:
         break
 
 cap.release()
+
 cv2.destroyAllWindows()
 log_file.close()
 if ser:
